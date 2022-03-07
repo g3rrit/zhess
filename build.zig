@@ -16,6 +16,8 @@ pub fn build(b: *std.build.Builder) void {
     exe.setBuildMode(mode);
     exe.install();
 
+    exe.addIncludeDir("./external/raylib/src");
+
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
@@ -31,4 +33,9 @@ pub fn build(b: *std.build.Builder) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&exe_tests.step);
+
+    exe.addLibPath("./external/raylib/src");
+    exe.linkSystemLibrary("raylib");
+    exe.linkLibC();
+
 }

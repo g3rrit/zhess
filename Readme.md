@@ -4,13 +4,12 @@ Small/simple chess game written in zig
 
 ## Dependencies
 
-### libui
+### Raylib
 
-https://github.com/andlabs/libui
+git@github.com:raysan5/raylib.git
 
-Building:
+Building
 ```
-$ # you must be in the top-level libui directory, otherwise this won't work
-$ meson setup build [options]
-$ ninja -C build
+cd external/raylib/src
+make
 ```
