@@ -8,7 +8,6 @@ const u = @import("util.zig");
 const b = @import("board.zig");
 
 pub fn main() anyerror!void {
-
     rl.InitWindow(u.WINDOW_SIZE, u.WINDOW_SIZE, "ZHESS (Zig Chess)");
 
     var board_texture = gfx.BoardTexture.init();

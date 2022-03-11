@@ -2,10 +2,11 @@ const std = @import("std");
 const u = @import("util.zig");
 
 pub const BB = struct {
-
     pub fn _set(bb: u64, x: u8, y: u8) u64 {
-        if (x >= 8 or y >= 8) { return bb; }
-        var shift : u6 =  @intCast(u6, y * 8 + x);
+        if (x >= 8 or y >= 8) {
+            return bb;
+        }
+        var shift: u6 = @intCast(u6, y * 8 + x);
         return bb | (@as(u64, 1) << shift);
     }
 
@@ -14,8 +15,10 @@ pub const BB = struct {
     }
 
     pub fn _unset(bb: u64, x: u8, y: u8) u64 {
-        if (x >= 8 or y >= 8) { return bb; }
-        var shift : u6 =  @intCast(u6, y * 8 + x);
+        if (x >= 8 or y >= 8) {
+            return bb;
+        }
+        var shift: u6 = @intCast(u6, y * 8 + x);
         return bb & (~(1 << shift));
     }
 
@@ -24,8 +27,10 @@ pub const BB = struct {
     }
 
     pub fn _in(bb: u64, x: u8, y: u8) bool {
-        if (x >= 8 or y >= 8) { return false; }
-        var shift : u6 =  @intCast(u6, y * 8 + x);
+        if (x >= 8 or y >= 8) {
+            return false;
+        }
+        var shift: u6 = @intCast(u6, y * 8 + x);
         return (bb & (@as(u64, 1) << shift)) != 0;
     }
 
@@ -37,14 +42,14 @@ pub const BB = struct {
 pub const Board = struct {
     setup: [64]u4,
     castle: [6]bool, // WKing, BKing, left WRook, right WRook, left BRook, right BRook
-    last_move : struct {
+    last_move: struct {
         src: u.Pos,
         dst: u.Pos,
     },
-    active : u.Color,
+    active: u.Color,
 
     pub fn init() Board {
-        return .{ 
+        return .{
             .setup = .{
                 1,  2,  3,  4,  5,  3,  2,  1,
                 0,  0,  0,  0,  0,  0,  0,  0,
@@ -53,17 +58,16 @@ pub const Board = struct {
                 15, 15, 15, 15, 15, 15, 15, 15,
                 15, 15, 15, 15, 15, 15, 15, 15,
                 6,  6,  6,  6,  6,  6,  6,  6,
-                7,  8,  9, 10, 11,  9,  8,  7,
+                7,  8,  9,  10, 11, 9,  8,  7,
             },
             .castle = .{ false, false, false, false, false, false },
-            .last_move = .{
-                .src = u.Pos {
-                    .x = 0, .y = 0,
-                },
-                .dst = u.Pos {
-                    .x = 0, .y = 0,
-                }
-            },
+            .last_move = .{ .src = u.Pos{
+                .x = 0,
+                .y = 0,
+            }, .dst = u.Pos{
+                .x = 0,
+                .y = 0,
+            } },
             .active = u.Color.White,
         };
     }
@@ -77,7 +81,6 @@ pub const Board = struct {
     }
 
     fn is(self: *Board, pos: u.Pos, color: ?u.Color, tag: ?u.Tag) bool {
-
         if (pos.x > 7 or pos.y > 7) {
             return false;
         }
@@ -102,8 +105,7 @@ pub const Board = struct {
     }
 
     fn get_bb_attack_rook(self: *Board, _bb: u64, pos: u.Pos, attack: bool) u64 {
-
-        var bb : u64 = _bb;
+        var bb: u64 = _bb;
 
         const color = u.Color.from_val(self.at(pos));
 
@@ -139,8 +141,7 @@ pub const Board = struct {
     }
 
     fn get_bb_attack_bishop(self: *Board, _bb: u64, pos: u.Pos, attack: bool) u64 {
-
-        var bb : u64 = _bb;
+        var bb: u64 = _bb;
 
         const color = u.Color.from_val(self.at(pos));
 
@@ -176,8 +177,7 @@ pub const Board = struct {
     }
 
     fn get_bb(self: *Board, _bb: u64, pos: u.Pos, _color: ?u.Color, attack: bool) u64 {
-
-        var bb : u64 = _bb;
+        var bb: u64 = _bb;
 
         const i = pos.to_index();
         const val = self.setup[i];
@@ -196,15 +196,23 @@ pub const Board = struct {
         switch (tag) {
             u.Tag.Pawn => {
                 const dir: i8 = color.dir();
-                const last_move_piece : u.Tag = u.Tag.from_val(self.at(self.last_move.dst));
+                const last_move_piece: u.Tag = u.Tag.from_val(self.at(self.last_move.dst));
 
                 // En passant
                 // This should work as the pawn can only move 2 if it has been on y == 1 or 6
-                if (!attack and (last_move_piece == u.Tag.Pawn and self.last_move.dst.x + 1 == pos.x and (@intCast(i8, self.last_move.src.y) -% @intCast(i8, self.last_move.dst.y)) * dir == 2)) {
+                if (!attack and
+                    (last_move_piece == u.Tag.Pawn and
+                    self.last_move.dst.x + 1 == pos.x and
+                    (@intCast(i8, self.last_move.src.y) -% @intCast(i8, self.last_move.dst.y)) * dir == 2))
+                {
                     bb = BB._set(bb, pos.x -% 1, @intCast(u8, @intCast(i8, pos.y) + dir));
                 }
 
-                if (!attack and (last_move_piece == u.Tag.Pawn and self.last_move.dst.x == pos.x + 1 and (@intCast(i8, self.last_move.src.y) -% @intCast(i8, self.last_move.dst.y)) * dir == 2)) {
+                if (!attack and
+                    (last_move_piece == u.Tag.Pawn and
+                    self.last_move.dst.x == pos.x + 1 and
+                    (@intCast(i8, self.last_move.src.y) -% @intCast(i8, self.last_move.dst.y)) * dir == 2))
+                {
                     bb = BB._set(bb, pos.x + 1, @intCast(u8, @intCast(i8, pos.y) + dir));
                 }
 
@@ -220,8 +228,8 @@ pub const Board = struct {
                 }
 
                 // diagonal attack
-                bb = if (attack or self._is(pos.x -% 1, @intCast(u8, @intCast(i8,pos.y) + dir), color.not(), null)) BB._set(bb, pos.x -% 1, @intCast(u8, @intCast(i8,pos.y) + dir)) else bb;
-                bb = if (attack or self._is(pos.x + 1, @intCast(u8, @intCast(i8,pos.y) + dir), color.not(), null)) BB._set(bb, pos.x + 1, @intCast(u8, @intCast(i8,pos.y) + dir)) else bb;
+                bb = if (attack or self._is(pos.x -% 1, @intCast(u8, @intCast(i8, pos.y) + dir), color.not(), null)) BB._set(bb, pos.x -% 1, @intCast(u8, @intCast(i8, pos.y) + dir)) else bb;
+                bb = if (attack or self._is(pos.x + 1, @intCast(u8, @intCast(i8, pos.y) + dir), color.not(), null)) BB._set(bb, pos.x + 1, @intCast(u8, @intCast(i8, pos.y) + dir)) else bb;
             },
             u.Tag.Rook => {
                 bb = self.get_bb_attack_rook(bb, pos, attack);
@@ -263,8 +271,8 @@ pub const Board = struct {
                     self._is(0, pos.y, u.Color.White, u.Tag.Rook) and
                     self._is(1, pos.y, null, null) and
                     self._is(2, pos.y, null, null) and
-                    self._is(3, pos.y, null, null)) {
-
+                    self._is(3, pos.y, null, null))
+                {
                     var mboard = self.*;
                     mboard.move(pos, u.Pos.init(pos.x -% 1, pos.y));
                     if (!mboard.is_mate()) {
@@ -275,8 +283,8 @@ pub const Board = struct {
                     !self.castle[2 + 2 * @intCast(usize, @enumToInt(color)) + 1] and
                     self._is(7, pos.y, u.Color.White, u.Tag.Rook) and
                     self._is(6, pos.y, null, null) and
-                    self._is(5, pos.y, null, null)) {
-
+                    self._is(5, pos.y, null, null))
+                {
                     var mboard = self.*;
                     mboard.move(pos, u.Pos.init(pos.x + 1, pos.y));
                     if (!mboard.is_mate()) {
@@ -308,8 +316,8 @@ pub const Board = struct {
 
             // handle en passant
             if (tag == u.Tag.Pawn and
-                !self.is(dst, null, null)) {
-
+                !self.is(dst, null, null))
+            {
                 self.setup[u.Pos._to_index(dst.x, if (self.active == u.Color.White) dst.y -% 1 else dst.y + 1)] = 15;
             }
         }
@@ -331,10 +339,9 @@ pub const Board = struct {
     }
 
     fn is_mate(self: *Board) bool {
-
         var i: u16 = 0;
 
-        var king_at : ?u16 = null;
+        var king_at: ?u16 = null;
         var bb: u64 = 0;
         while (i < 64) : (i += 1) {
             bb = self.get_bb(bb, u.Pos.from_index(i), self.active.not(), true);
@@ -351,7 +358,6 @@ pub const Board = struct {
     }
 
     pub fn is_legal(self: *Board, src: u.Pos, dst: u.Pos) bool {
-
         const src_val = self.setup[src.to_index()];
         //const src_tag = u.Tag.from_val(src_val);
         const src_color = u.Color.from_val(src_val);
@@ -370,14 +376,14 @@ pub const Board = struct {
             return false;
         }
 
-        var bb : u64 = self.get_bb(0, src, null, false);
+        var bb: u64 = self.get_bb(0, src, null, false);
 
         if (!BB.in(bb, dst)) {
             std.log.info("Not in bitboard", .{});
             return false;
         }
 
-        var mboard : Board = self.*;
+        var mboard: Board = self.*;
         mboard.move(src, dst);
         if (mboard.is_mate()) {
             std.log.info("Would be mate", .{});
@@ -388,7 +394,6 @@ pub const Board = struct {
     }
 
     pub fn move_checked(self: *Board, src: u.Pos, dst: u.Pos) void {
-
         std.log.info("Moving {} to {}", .{ src, dst });
 
         if (!self.is_legal(src, dst)) {
@@ -428,4 +433,3 @@ pub const Board = struct {
         };
     }
 };
-

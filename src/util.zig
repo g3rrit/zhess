@@ -13,7 +13,7 @@ pub const Tag = enum {
     Queen,
     King,
 
-    pub fn from_val(val : u8) Tag {
+    pub fn from_val(val: u8) Tag {
         return @intToEnum(Tag, val % 6);
     }
 };
@@ -22,7 +22,7 @@ pub const Color = enum {
     White,
     Black,
 
-    pub fn from_val(val : u8) Color {
+    pub fn from_val(val: u8) Color {
         return if (val < 6) Color.White else Color.Black;
     }
 
@@ -44,7 +44,7 @@ pub const Pos = struct {
     y: u8,
 
     pub fn init(x: u8, y: u8) Pos {
-        return Pos {
+        return Pos{
             .x = x,
             .y = y,
         };
@@ -55,12 +55,12 @@ pub const Pos = struct {
     }
 
     pub fn from_index(index: u16) Pos {
-        return Pos {
+        return Pos{
             .x = @intCast(u8, index % 8),
             .y = @intCast(u8, index / 8),
         };
     }
-    
+
     pub fn _to_index(x: u8, y: u8) u16 {
         return @intCast(u16, y) * 8 + @intCast(u16, x);
     }
