@@ -59,19 +59,24 @@ pub const BoardTexture = struct {
         self.textures[index].draw(pos.x * u.SQUARE_SIZE + u.BOARD_OFFSET, u.BOARD_SIZE - ((pos.y + 1) * u.SQUARE_SIZE) + u.BOARD_OFFSET);
     }
 
-    pub fn draw(self: *BoardTexture, board: *b.Board) void {
+    pub fn draw(self: *BoardTexture, board: *b.Board, bb: u64) void {
 
         // Draw tiles
-        var x: usize = 0;
-        var y: usize = 0;
+        var x: u8 = 0;
+        var y: u8 = 0;
         while (x < 8) : (x += 1) {
             while (y < 8) : (y += 1) {
                 var xpos: c_int = @intCast(c_int, u.BOARD_OFFSET + x * u.SQUARE_SIZE);
                 var ypos: c_int = @intCast(c_int, u.BOARD_OFFSET + y * u.SQUARE_SIZE);
+
+                // The graphics and board representation use different coordinate systems, 7 - y fixes this
+                var in_bb: bool = b.BB.in(bb, u.Pos{ .x = x, .y = 7 - y });
+                var alpha_d: u8 = if (in_bb) 20 else 0;
+
                 rl.DrawRectangle(xpos, ypos, @intCast(c_int, u.SQUARE_SIZE), @intCast(c_int, u.SQUARE_SIZE), if ((x + y) % 2 == 1)
-                    rl.Color{ .r = 10, .g = 10, .b = 10, .a = 30 }
+                    rl.Color{ .r = 10, .g = 10, .b = 10, .a = 30 + alpha_d }
                 else
-                    rl.Color{ .r = 100, .g = 100, .b = 10, .a = 30 });
+                    rl.Color{ .r = 100, .g = 100, .b = 10, .a = 30 + alpha_d });
             }
             y = 0;
         }

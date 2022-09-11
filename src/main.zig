@@ -16,18 +16,23 @@ pub fn main() anyerror!void {
     var src_pos: ?u.Pos = null;
     var dst_pos: ?u.Pos = null;
 
-    while (!rl.WindowShouldClose()) {
+    var legal_bb: u64 = 0;
 
-        // Update
+    while (!rl.WindowShouldClose()) {
         if (rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_LEFT)) {
+            legal_bb = 0;
             var x = rl.GetMouseX();
             var y = rl.GetMouseY();
             if (x >= 0 and y >= 0) {
                 src_pos = gfx.translate_pos(@intCast(u32, x), @intCast(u32, y));
+                if (src_pos != null) {
+                    legal_bb = board.get_legal_bb(src_pos.?);
+                }
             }
         }
 
         if (rl.IsMouseButtonPressed(rl.MOUSE_BUTTON_RIGHT)) {
+            legal_bb = 0;
             var x = rl.GetMouseX();
             var y = rl.GetMouseY();
             if (x >= 0 and y >= 0) {
@@ -45,7 +50,7 @@ pub fn main() anyerror!void {
         rl.BeginDrawing();
         rl.ClearBackground(rl.RAYWHITE);
 
-        board_texture.draw(&board);
+        board_texture.draw(&board, legal_bb);
 
         rl.EndDrawing();
     }

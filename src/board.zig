@@ -19,7 +19,7 @@ pub const BB = struct {
             return bb;
         }
         var shift: u6 = @intCast(u6, y * 8 + x);
-        return bb & (~(1 << shift));
+        return bb & (~(@as(u64, 1) << shift));
     }
 
     pub fn unset(bb: u64, pos: u.Pos) u64 {
@@ -203,6 +203,7 @@ pub const Board = struct {
                 if (!attack and
                     (last_move_piece == u.Tag.Pawn and
                     self.last_move.dst.x + 1 == pos.x and
+                    self.last_move.dst.y == pos.y and
                     (@intCast(i8, self.last_move.src.y) -% @intCast(i8, self.last_move.dst.y)) * dir == 2))
                 {
                     bb = BB._set(bb, pos.x -% 1, @intCast(u8, @intCast(i8, pos.y) + dir));
@@ -211,6 +212,7 @@ pub const Board = struct {
                 if (!attack and
                     (last_move_piece == u.Tag.Pawn and
                     self.last_move.dst.x == pos.x + 1 and
+                    self.last_move.dst.y == pos.y and
                     (@intCast(i8, self.last_move.src.y) -% @intCast(i8, self.last_move.dst.y)) * dir == 2))
                 {
                     bb = BB._set(bb, pos.x + 1, @intCast(u8, @intCast(i8, pos.y) + dir));
@@ -266,24 +268,11 @@ pub const Board = struct {
                 bb = if (attack or !self._is(pos.x + 1, pos.y -% 1, color, null)) BB._set(bb, pos.x + 1, pos.y -% 1) else bb;
 
                 // checking if the RESULT of the move results in checkmate is checked in is_legal
-                if (!attack and !self.castle[@enumToInt(color)] and
-                    !self.castle[2 + 2 * @intCast(usize, @enumToInt(color))] and
-                    self._is(0, pos.y, u.Color.White, u.Tag.Rook) and
-                    self._is(1, pos.y, null, null) and
-                    self._is(2, pos.y, null, null) and
-                    self._is(3, pos.y, null, null))
-                {
-                    var mboard = self.*;
-                    mboard.move(pos, u.Pos.init(pos.x -% 1, pos.y));
-                    if (!mboard.is_mate()) {
-                        bb = BB._set(bb, pos.x -% 2, pos.y);
-                    }
-                }
-                if (!attack and !self.castle[@enumToInt(color)] and
+                if (!self.castle[@enumToInt(color)] and
                     !self.castle[2 + 2 * @intCast(usize, @enumToInt(color)) + 1] and
-                    self._is(7, pos.y, u.Color.White, u.Tag.Rook) and
-                    self._is(6, pos.y, null, null) and
-                    self._is(5, pos.y, null, null))
+                    self._is(7, pos.y, color, u.Tag.Rook) and
+                    !self._is(6, pos.y, null, null) and
+                    !self._is(5, pos.y, null, null))
                 {
                     var mboard = self.*;
                     mboard.move(pos, u.Pos.init(pos.x + 1, pos.y));
@@ -291,9 +280,41 @@ pub const Board = struct {
                         bb = BB._set(bb, pos.x + 2, pos.y);
                     }
                 }
+
+                if (!self.castle[@enumToInt(color)] and
+                    !self.castle[2 + 2 * @intCast(usize, @enumToInt(color))] and
+                    self._is(0, pos.y, color, u.Tag.Rook) and
+                    !self._is(1, pos.y, null, null) and
+                    !self._is(2, pos.y, null, null) and
+                    !self._is(3, pos.y, null, null))
+                {
+                    var mboard = self.*;
+                    mboard.move(pos, u.Pos.init(pos.x -% 1, pos.y));
+                    if (!mboard.is_mate()) {
+                        bb = BB._set(bb, pos.x -% 2, pos.y);
+                    }
+                }
             },
         }
 
+        return bb;
+    }
+
+    pub fn get_legal_bb(self: *Board, pos: u.Pos) u64 {
+        const color = u.Color.from_val(self.at(pos));
+        var bb = self.get_bb(0, pos, color, false);
+
+        var x: u8 = 0;
+        var y: u8 = 0;
+        while (x < 8) : (x += 1) {
+            while (y < 8) : (y += 1) {
+                const dst = u.Pos{ .x = x, .y = y };
+                if (!self.is_legal(pos, dst)) {
+                    bb = BB.unset(bb, dst);
+                }
+            }
+            y = 0;
+        }
         return bb;
     }
 
@@ -359,34 +380,28 @@ pub const Board = struct {
 
     pub fn is_legal(self: *Board, src: u.Pos, dst: u.Pos) bool {
         const src_val = self.setup[src.to_index()];
-        //const src_tag = u.Tag.from_val(src_val);
         const src_color = u.Color.from_val(src_val);
 
         const dst_val = self.setup[dst.to_index()];
-        //const dst_tag = u.Tag.from_val(dst_val);
         const dst_color = u.Color.from_val(dst_val);
 
         if (src_color != self.active) {
-            std.log.info("Invalid color", .{});
             return false;
         }
 
         if (src_color == dst_color and dst_val != 15) {
-            std.log.info("Unable to move same color piece", .{});
             return false;
         }
 
         var bb: u64 = self.get_bb(0, src, null, false);
 
         if (!BB.in(bb, dst)) {
-            std.log.info("Not in bitboard", .{});
             return false;
         }
 
         var mboard: Board = self.*;
         mboard.move(src, dst);
         if (mboard.is_mate()) {
-            std.log.info("Would be mate", .{});
             return false;
         }
 
@@ -394,10 +409,7 @@ pub const Board = struct {
     }
 
     pub fn move_checked(self: *Board, src: u.Pos, dst: u.Pos) void {
-        std.log.info("Moving {} to {}", .{ src, dst });
-
         if (!self.is_legal(src, dst)) {
-            std.log.info("Illegal move", .{});
             return;
         }
 
